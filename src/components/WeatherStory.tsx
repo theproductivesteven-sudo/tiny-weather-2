@@ -24,7 +24,7 @@ export function WeatherStory() {
     addChild,
   } = useTinyWeather({
     apiKey: import.meta.env.VITE_WEATHER_API_KEY,
-    useMockData: true, // Set to false when you have a real API key
+    useMockData: false, // Set to false when you have a real API key
   });
 
   const handleRegistrationComplete = (kidsData: Array<{ name: string; age: string }>) => {
