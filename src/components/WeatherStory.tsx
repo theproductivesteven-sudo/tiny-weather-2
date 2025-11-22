@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { RegistrationCard } from './cards/RegistrationCard';
 import { TodayOverviewCard } from './cards/TodayOverviewCard';
@@ -6,6 +6,7 @@ import { OutfitPieceCard } from './cards/OutfitPieceCard';
 import { ActivityTimeCard } from './cards/ActivityTimeCard';
 import { HomeScreen } from './cards/HomeScreen';
 import { ChevronDown } from 'lucide-react';
+import { useTinyWeather } from '../index.js';
 
 export function WeatherStory() {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -13,20 +14,46 @@ export function WeatherStory() {
   const [touchEnd, setTouchEnd] = useState(0);
   const [kids, setKids] = useState<Array<{ name: string; age: string }>>([]);
 
+  // Connect to weather brains
+  const { 
+    weather, 
+    outfits, 
+    activities, 
+    tips, 
+    isLoading,
+    addChild,
+  } = useTinyWeather({
+    apiKey: import.meta.env.VITE_WEATHER_API_KEY,
+    useMockData: true, // Set to false when you have a real API key
+  });
+
   const handleRegistrationComplete = (kidsData: Array<{ name: string; age: string }>) => {
     setKids(kidsData);
+    
+    // Add kids to the weather engine
+    kidsData.forEach(kid => {
+      const ageMonths = parseInt(kid.age) * 12; // Convert years to months
+      addChild(kid.name, ageMonths);
+    });
+    
     setCurrentSlide(1);
   };
 
   const firstKid = kids.length > 0 ? kids[0] : null;
+  const firstOutfit = outfits.length > 0 ? outfits[0] : null;
 
   const cards = [
     <RegistrationCard key="registration" onComplete={handleRegistrationComplete} />,
-    <TodayOverviewCard key="overview" />,
+    <TodayOverviewCard 
+      key="overview" 
+      weather={weather}
+      tips={tips}
+    />,
     <OutfitPieceCard 
       key="outfit1" 
       piece="base"
       kidName={firstKid?.name}
+      outfit={firstOutfit}
       currentPiece={1}
       totalPieces={3}
     />,
@@ -34,6 +61,7 @@ export function WeatherStory() {
       key="outfit2" 
       piece="layer"
       kidName={firstKid?.name}
+      outfit={firstOutfit}
       currentPiece={2}
       totalPieces={3}
     />,
@@ -41,28 +69,36 @@ export function WeatherStory() {
       key="outfit3" 
       piece="accessories"
       kidName={firstKid?.name}
+      outfit={firstOutfit}
       currentPiece={3}
       totalPieces={3}
     />,
     <ActivityTimeCard 
       key="activity1"
       timeSlot="morning"
+      activities={activities}
       currentSlot={1}
       totalSlots={3}
     />,
     <ActivityTimeCard 
       key="activity2"
       timeSlot="midday"
+      activities={activities}
       currentSlot={2}
       totalSlots={3}
     />,
     <ActivityTimeCard 
       key="activity3"
       timeSlot="afternoon"
+      activities={activities}
       currentSlot={3}
       totalSlots={3}
     />,
-    <HomeScreen key="home" />
+    <HomeScreen 
+      key="home" 
+      weather={weather}
+      activities={activities}
+    />
   ];
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -75,14 +111,11 @@ export function WeatherStory() {
 
   const handleTouchEnd = () => {
     if (touchStart - touchEnd > 50) {
-      // Swipe up
       if (currentSlide < cards.length - 1) {
         setCurrentSlide(currentSlide + 1);
       }
     }
-
     if (touchStart - touchEnd < -50) {
-      // Swipe down
       if (currentSlide > 0) {
         setCurrentSlide(currentSlide - 1);
       }
@@ -118,7 +151,6 @@ export function WeatherStory() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Pagination Dots */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex gap-2">
         {cards.map((_, index) => (
           <button
